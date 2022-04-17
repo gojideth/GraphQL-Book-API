@@ -1,7 +1,9 @@
 const { getArgumentValues } = require("@graphql-tools/utils");
+const mongoose = require("mongoose");
 const Author = require("./src/models/Author");
 const Book = require("./src/models/Book");
 const Publisher = require("./src/models/Publisher");
+const typeDb = require("mongoose").Types;
 
 const createAuthor = (author) => {
   return Author.create(author).then((author) => {
@@ -115,44 +117,85 @@ const resolvers = {
       const publisher = await Publisher.findById(args.id);
       return publisher;
     },
+    getFromIdToObject: async(root,args)=>{
+      console.log(root.Publisher);
+      return root;
+    }
   },
   Mutation: {
     createBook: async (root, args) => {
-      const publisherInfo = await Publisher.find({
-        name: args.book.publisher.name,
-      });
-      if (
-        (await Publisher.find({ name: args.book.publisher.name }).count()) < 1
-      ) {
-        console.log("menor 1");
-        var publisherAux = await createPublisher({
-          name: args.book.publisher.name,
-          foundationYear: args.book.publisher.foundationYear,
-        });
-      }
-      const { _id, name, foundationYear } = publisherInfo[0];
-      console.log(_id, name, foundationYear);
-      const objectExisted = {
-        _id,
-        name,
-        foundationYear,
-      };
-      console.log(objectExisted);
-
-      const { title, ISBN, synopsis, genres, publicationYear } =
-        args.book;
-
-      const newBook = new Book({
-        title,
-        ISBN,
-        synopsis,
-        objectExisted,
-        genres,
-        publicationYear,
-      });
-      await newBook.save();
+      const newBook = await validatePublisherBook(args);
+      console.log("New book-->" + newBook.publisher);
       return newBook;
     },
+    updateBook: async (_,{id,book})=>{
+      const bookUpdated = await Book.findByIdAndUpdate(id, {
+        $set:book
+      }, {new:true})
+      return bookUpdated;
+    },
+    deleteBook: async(_,{id}) =>{
+      await Book.findByIdAndRemove(id);
+      return `Book with ID ${id} deleted`;
+
+    }
+    
   },
 };
 module.exports = { resolvers };
+async function validatePublisherBook(args) { 
+  const { title, ISBN, synopsis, genres, publicationYear } = args.book;
+  const { publisher } = args.book;
+
+  const publisherInfo = await Publisher.find({
+    name: args.book.publisher.name,
+  });
+  if ((await Publisher.find({ name: args.book.publisher.name }).count()) < 1) {
+    console.log("No existe el publicador ");
+    var publisherAux = await createPublisher({
+      name: args.book.publisher.name,
+      foundationYear: args.book.publisher.foundationYear,
+    });
+    await publisherAux.save();
+
+    //Creo el libro y anexo el publisher recien creado    
+    const bookWithNewPublisher = new Book({
+      title,
+      ISBN,
+      synopsis,
+      genres,
+      publicationYear,
+      publisher: publisherAux._id,
+    });
+    await bookWithNewPublisher.save();
+    linkNewBookToPublisher(bookWithNewPublisher._id, publisherAux._id);
+    out =  bookWithNewPublisher;
+  } else {
+    const {name, foundationYear } = publisherInfo[0];
+    const oldPublisher = await Publisher.find({name });
+    //Ahora sí ya existe el publisher debo traerlo completo
+    //Creo el libro con el publisher existente
+    const bookWithOldPublisher = new Book({
+      title,
+      ISBN,
+      synopsis,
+      genres,
+      publicationYear,
+      publisher: oldPublisher[0]._id,
+    });
+    await bookWithOldPublisher.save();
+    linkNewBookToPublisher(bookWithOldPublisher._id,oldPublisher[0]._id );
+    console.log("Libro con publisher viejo guardado");
+    out = bookWithOldPublisher;
+  }
+  console.log("Out -->" + out);
+  return out;
+}
+
+async function linkNewBookToPublisher(bookId, publisherId) {
+  return await Publisher.findByIdAndUpdate(
+    publisherId,
+    { $push: { booksPublished: bookId._id } },
+    { new: true, useFindAndModify: false }
+  );
+}

@@ -17,7 +17,7 @@ const Book = mongoose.model(
       
     },
     publisher:{
-      type: mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.ObjectId,
       ref: "Publisher",
       required:true
     },

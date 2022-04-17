@@ -10,7 +10,7 @@ const Publisher = mongoose.model(
       type: Number,
       required:true
     },
-    booksPublished: []
+    booksPublished: [{ type:  mongoose.Schema.ObjectId, ref: 'Book' }]
   })
 );
 

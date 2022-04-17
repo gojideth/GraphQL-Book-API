@@ -2,7 +2,7 @@ const {gql} = require('apollo-server-express');
 
 const typeDefs = gql `
   type Publisher{
-    #id: ID!
+    id: ID!
     name:String
     foundationYear: Int
     booksPublished: [Book]
@@ -60,6 +60,9 @@ const typeDefs = gql `
     Return a publisher by its ID
     """
     getPublisherId(id:ID!):Publisher!
+
+    getFromIdToObject(id:ID!):Book
+    
   }
   input BookInput{
     title: String
@@ -85,6 +88,8 @@ const typeDefs = gql `
   }
   type Mutation{
     createBook(book: BookInput!): Book!
+    updateBook(id: ID!, book:BookInput!):Book!
+    deleteBook(id: ID!):String!
   }
 
   
