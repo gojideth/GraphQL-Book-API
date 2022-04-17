@@ -39,7 +39,7 @@ const typeDefs = gql `
     """
     Get all the books
     """
-    getAllBooks(limitBooks: Int ): [Book]
+    getAllBooks(limitBooks: Int, title: String, author:String, publisher:String, yearPublished: Int ): [Book]
 
     """
     Get all the publishers
@@ -62,7 +62,7 @@ const typeDefs = gql `
     getPublisherId(id:ID!):Publisher!
 
     getFromIdToObject(id:ID!):Book
-    
+    books(page:String): [Book]
   }
   input BookInput{
     title: String

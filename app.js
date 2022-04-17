@@ -4,6 +4,11 @@ const {ApolloServer} = require('apollo-server-express');
 const {typeDefs} = require('./typeDefs');
 const {resolvers}  = require('./resolvers');
 const {connectDB} = require('./db');
+const jwt = require('jsonwebtoken');
+const find = require('lodash/find');
+const expiresIn = '3h' // time to live
+const secret = 'samplejwtauthgraphql' // secret key
+const tokenPrefix = 'JWT' // Prefix for HTTP header
 
 const app = express();
 connectDB();

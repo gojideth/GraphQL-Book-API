@@ -94,6 +94,9 @@ const resolvers = {
       return authors;
     },
     getAllBooks: async (args) => {
+      //console.log(args.limitBooks);
+      //const{limitBooks, title, author,publisher, yearPublished} = args
+      
       const books = await Book.find();
       return books;
     },
@@ -120,7 +123,11 @@ const resolvers = {
     getFromIdToObject: async(root,args)=>{
       console.log(root.Publisher);
       return root;
-    }
+    },
+    books: (parent, args, context, info) => {
+
+
+    },
   },
   Mutation: {
     createBook: async (root, args) => {
@@ -145,18 +152,30 @@ const resolvers = {
 module.exports = { resolvers };
 async function validatePublisherBook(args) { 
   const { title, ISBN, synopsis, genres, publicationYear } = args.book;
-  const { publisher } = args.book;
+  const {publisher} = args.book;
+  const {firstName, lastName, country} =args.book.authors[0];
+  const {name, foundationYear } = publisher;
 
   const publisherInfo = await Publisher.find({
-    name: args.book.publisher.name,
+    name: publisher.name,
   });
-  if ((await Publisher.find({ name: args.book.publisher.name }).count()) < 1) {
-    console.log("No existe el publicador ");
+  if ((await Publisher.find({ name }).count()) < 1 && await Author.find({firstName }).count()<1) {
+    console.log("ENTRO IF")
+
     var publisherAux = await createPublisher({
-      name: args.book.publisher.name,
-      foundationYear: args.book.publisher.foundationYear,
+      name,
+      foundationYear,
     });
     await publisherAux.save();
+
+    var author = await createAuthor(
+      {
+        firstName,
+        lastName,
+        country
+      }
+    );
+    await author.save();
 
     //Creo el libro y anexo el publisher recien creado    
     const bookWithNewPublisher = new Book({
@@ -169,26 +188,28 @@ async function validatePublisherBook(args) {
     });
     await bookWithNewPublisher.save();
     linkNewBookToPublisher(bookWithNewPublisher._id, publisherAux._id);
+    linkNewBookToAuthor(bookWithNewPublisher._id,author._id);
+    linkAuthorToBook(bookWithNewPublisher._id, author._id);
     out =  bookWithNewPublisher;
-  } else {
-    const {name, foundationYear } = publisherInfo[0];
-    const oldPublisher = await Publisher.find({name });
-    //Ahora sí ya existe el publisher debo traerlo completo
-    //Creo el libro con el publisher existente
+  } else if((await Publisher.find({ name }).count()) > 1 && await Author.find({firstName }).count()<1) {
+    console.log("ENTRO ELSE")
+    const oldPublisher = await Publisher.find({name});
+    const oldAuthor = await Author.find({firstName });
+    console.log(oldAuthor);
     const bookWithOldPublisher = new Book({
       title,
       ISBN,
       synopsis,
       genres,
       publicationYear,
-      publisher: oldPublisher[0]._id,
+      publisher: oldPublisher._id,
     });
-    await bookWithOldPublisher.save();
+    //await bookWithOldPublisher.save();
     linkNewBookToPublisher(bookWithOldPublisher._id,oldPublisher[0]._id );
-    console.log("Libro con publisher viejo guardado");
+    linkNewBookToAuthor(bookWithOldPublisher._id,oldAuthor._id);
+    linkAuthorToBook(bookWithOldPublisher._id,oldAuthor._id )
     out = bookWithOldPublisher;
   }
-  console.log("Out -->" + out);
   return out;
 }
 
@@ -199,3 +220,22 @@ async function linkNewBookToPublisher(bookId, publisherId) {
     { new: true, useFindAndModify: false }
   );
 }
+async function linkNewBookToAuthor(bookId, authorId) {
+  return await Author.findByIdAndUpdate(
+    authorId,
+    { $push: { booksWritten: bookId._id } },
+    { new: true, useFindAndModify: false }
+  );
+}
+
+async function linkAuthorToBook(bookId, authorId){
+  return await Book.findByIdAndUpdate(
+    bookId,
+    { $push: { authors: authorId._id } },
+    { new: true, useFindAndModify: false }
+  );
+
+}
+
+
+
