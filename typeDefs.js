@@ -2,7 +2,7 @@ const {gql} = require('apollo-server-express');
 
 const typeDefs = gql `
   type Publisher{
-    id: ID!
+    #id: ID!
     name:String
     foundationYear: Int
     booksPublished: [Book]

@@ -1,3 +1,4 @@
+const { getArgumentValues } = require("@graphql-tools/utils");
 const Author = require("./src/models/Author");
 const Book = require("./src/models/Book");
 const Publisher = require("./src/models/Publisher");
@@ -53,7 +54,7 @@ async function createBooks() {
       title: "F pluton",
       ISBN: "sdsds222SSHJDFSJ2",
       synopsis: "Está siendo un éxito en todo lao",
-      publisher: await Author.find({_id:"625b2e074b3bdb0359ab4863"}),
+      publisher: await Author.find({ _id: "625b2e074b3bdb0359ab4863" }),
       genres: ["Test1"],
       publicationYear: 2024,
     }
@@ -61,19 +62,19 @@ async function createBooks() {
 }
 //createBooks();
 
-async function createPublishers(){
+async function createPublishers() {
   var publisher = await createPublisher({
     name: "Panamericana",
-    foundationYear:2012
+    foundationYear: 2012,
   });
 }
 
 //createPublishers();
 
 const output = async () => {
-  var publisher = await Publisher.find({ name: "Panamericana" },{"_id":1});
+  var publisher = await Publisher.find({ name: "Panamericana" }, { _id: 1 });
   console.log(publisher);
- var books = await Book.find({publisher : publisher});
+  var books = await Book.find({ publisher: publisher });
   console.log(books);
 };
 
@@ -90,41 +91,68 @@ const resolvers = {
       const authors = await Author.find();
       return authors;
     },
-    getAllBooks: async(args)=>{      
-      const books = await Book.find().limit(args.limitBooks);
+    getAllBooks: async (args) => {
+      const books = await Book.find();
       return books;
     },
-    getAllPublishers: async(root,args)=>{
+    getAllPublishers: async (root, args) => {
       console.log(root);
       const publishers = await Publisher.find();
       return publishers;
     },
-    getAuthorId: async(_,args)=>{
+    getAuthorId: async (_, args) => {
       console.log(args.id);
       const author = await Author.findById(args.id);
       return author;
     },
-    getBookId: async(_,args)=>{
-      console.log(args.id)
+    getBookId: async (_, args) => {
+      console.log(args.id);
       const book = await Book.findById(args.id);
       return book;
     },
-    getPublisherId: async(_,args)=>{
+    getPublisherId: async (_, args) => {
       console.log(args.id);
       const publisher = await Publisher.findById(args.id);
       return publisher;
-    }
+    },
   },
-  Mutation:{
-    createBook: async (_,args)=>{
-      console.log("titulo->" + args.book.title)
-      //console.log(args);
-      const {title,ISBN, synopsis, publisher,genres,publicationYear} = args.Book;
-      const newBook = new Book({title,ISBN, synopsis, publisher,genres,publicationYear});
-      console.log(newBook);
+  Mutation: {
+    createBook: async (root, args) => {
+      const publisherInfo = await Publisher.find({
+        name: args.book.publisher.name,
+      });
+      if (
+        (await Publisher.find({ name: args.book.publisher.name }).count()) < 1
+      ) {
+        console.log("menor 1");
+        var publisherAux = await createPublisher({
+          name: args.book.publisher.name,
+          foundationYear: args.book.publisher.foundationYear,
+        });
+      }
+      const { _id, name, foundationYear } = publisherInfo[0];
+      console.log(_id, name, foundationYear);
+      const objectExisted = {
+        _id,
+        name,
+        foundationYear,
+      };
+      console.log(objectExisted);
+
+      const { title, ISBN, synopsis, genres, publicationYear } =
+        args.book;
+
+      const newBook = new Book({
+        title,
+        ISBN,
+        synopsis,
+        objectExisted,
+        genres,
+        publicationYear,
+      });
       await newBook.save();
       return newBook;
-    }
-  }
+    },
+  },
 };
 module.exports = { resolvers };
