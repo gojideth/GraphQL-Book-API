@@ -22,7 +22,8 @@ const Book = mongoose.model(
       required:true
     },
     genres: [],
-    publicationYear: Number 
+    publicationYear: Number,
+    authors:[]
   })
 );
 

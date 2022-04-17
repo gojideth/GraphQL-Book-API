@@ -18,6 +18,7 @@ const typeDefs = gql `
     publisher:Publisher
     genres: [Genre]
     publicationYear: Int
+    authors: [Author]
   }
 
   type Author{
@@ -25,12 +26,65 @@ const typeDefs = gql `
     firstName:String
     lastName: String
     country: String
-    booksPublished: [Book]
+    booksWritten: [Book]
   }
 
   type Query{
-    hello: String
+
+    """
+    Get all the authors 
+    """
     getAllAuthors: [Author]
+    hello: String
+    """
+    Get all the books
+    """
+    getAllBooks(limitBooks: Int ): [Book]
+
+    """
+    Get all the publishers
+    """
+    getAllPublishers: [Publisher]
+
+    """
+    Return an author by its ID
+    """
+    getAuthorId(id: ID!):Author!
+
+    """
+    Return a book by its ID    
+    """
+    getBookId(id:ID!): Book!
+
+    """
+    Return a publisher by its ID
+    """
+    getPublisherId(id:ID!):Publisher!
+  }
+  input BookInput{
+    title: String
+    ISBN: String
+    synopsis: String
+    publisher:InputPublisher
+    genres: [InputGenre]
+    publicationYear: Int
+    authors: [InputAuthor]
+  }
+
+  input InputPublisher{
+    name:String
+    foundationYear: Int
+  }
+  input InputGenre{
+    genres: [String]
+  }
+  input InputAuthor{
+    firstName:String
+    lastName: String
+    country: String
+  }
+  type Mutation{
+    createBook(book: BookInput!): Book!
   }
 
   

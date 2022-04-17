@@ -11,7 +11,7 @@ const Author = mongoose.model(
       required: true
     },
     country: String,
-    booksPublished: []
+    booksWritten: []
   })
 );
 
