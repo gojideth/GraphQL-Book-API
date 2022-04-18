@@ -1,6 +1,11 @@
 const {gql} = require('apollo-server-express');
 
 const typeDefs = gql `
+  type User{
+    id:ID!
+    name: String!
+    email:String!
+  }
   type Publisher{
     id: ID!
     name:String
@@ -90,6 +95,7 @@ const typeDefs = gql `
     createBook(book: BookInput!): Book!
     updateBook(id: ID!, book:BookInput!):Book!
     deleteBook(id: ID!):String!
+    createUser(email:String!, password:String!): String!
   }
 
   
