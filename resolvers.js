@@ -1,10 +1,13 @@
 const { getArgumentValues } = require("@graphql-tools/utils");
+const { ApolloError } = require("apollo-server-express");
 const mongoose = require("mongoose");
 const Author = require("./src/models/Author");
 const Book = require("./src/models/Book");
 const Publisher = require("./src/models/Publisher");
 const User = require("./src/models/User");
 const typeDb = require("mongoose").Types;
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const createAuthor = (author) => {
   return Author.create(author).then((author) => {
@@ -99,73 +102,51 @@ const resolvers = {
       await Book.findByIdAndRemove(id);
       return `Book with ID ${id} deleted`;
     },
-    createUser: async (root, args) => {
-      const { email, password } = args;
-      var out;
-      if ((await User.find({ email }).count()) >= 1) {
-        out = `Sorry user with that email already created`;
-      } else {
-        const user = new User({
-          email,
-          password,
-        });
-        await user.save();
-        out = `User with email ${email} created succesfully, please login now`;
+    async createUser(_, { registerInput: { username, email, password } }) {
+      const oldUser = await User.findOne({ email });
+      if (oldUser) {
+        throw new ApolloError(
+          `User already created with that email ${email}`,
+          "USER_ALREADY_EXISTS"
+        );
       }
-      return out;
+      var encryptedPassword = await bcrypt.hash(password, 10);
+      const newUser = new User({
+        username,
+        email: email.toLowerCase(),
+        password: encryptedPassword,
+      });
+      const token = jwt.sign({ user_id: newUser._id, email }, "UNSAFE_STRING", {
+        expiresIn: "2h",
+      });
+      newUser.token = token;
+      const res = await  newUser.save();
+      return {
+        id: res.id,
+        ...res._doc,
+      };
+    },
+    loginUser: async (_, { loginInput: { email, password } }) => {
+      const user = await User.findOne({email});
+      console.log(user);
+      if (user && (await bcrypt.compare(password, user.password))) {
+        const token = jwt.sign({ user_id: user._id, email }, "UNSAFE_STRING", {
+          expiresIn: "2h",
+        });
+        user.token = token;
+        return {
+          id: user.id,
+          ...user._doc,
+        };
+      } else {
+        throw new ApolloError("Incorrect password", "INCORRECT_PASSWORD");
+      }
     },
   },
 };
 
-/**
- * Use email as login, use password as password
- * @param {string} email
- * @param {string} password
- */
-const createToken = (email, password) => {
-  if (!email || !password) {
-    // no credentials = fail
-    return false;
-  }
-  const user = User.find({ email }, {});
-  if (!user) {
-    return false;
-  }
-  const payload = {
-    username: user.email,
-  };
-  const token = jwt.sign(payload, secret, {
-    expiresIn,
-  });
-  return token;
-  console.log(token);
-};
 
-const verifyToken = async (token) => {
-  const [prefix, payload] = token.split(" ");
-  let user = null;
-  if (!payload) {
-    //no token in the header
-    throw new Error("No token provided");
-  }
-  if (prefix !== tokenPrefix) {
-    //unexpected prefix or format
-    throw new Error("Invalid header format");
-  }
-  jwt.verify(payload, secret, (err, data) => {
-    if (err) {
-      //token is invalid
-      throw new Error("Invalid token!");
-    } else {
-      user =  User.find({ email: data.username});
-    }
-  });
-  if (!user) {
-    //user does not exist in DB
-    throw new Error("User doesn not exist");
-  }
-  return user;
-};
+
 
 async function linkNewBookToPublisher(bookId, publisherId) {
   return await Publisher.findByIdAndUpdate(
@@ -267,3 +248,4 @@ async function validatePublisherBook(args) {
   return out;
 }
 module.exports = { resolvers };
+

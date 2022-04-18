@@ -1,50 +1,56 @@
-const {gql} = require('apollo-server-express');
+const { gql } = require("apollo-server-express");
 
-const typeDefs = gql `
-  type User{
-    id:ID!
-    name: String!
-    email:String!
+const typeDefs = gql`
+  type User {
+    username: String!
+    email: String!
+    password: String!
+    token: String
   }
-  type Publisher{
+  type Publisher {
     id: ID!
-    name:String
+    name: String
     foundationYear: Int
     booksPublished: [Book]
   }
-  type Genre{
+  type Genre {
     name: String
   }
-  type Book{
+  type Book {
     id: ID!
     title: String
     ISBN: String
     synopsis: String
-    publisher:Publisher
+    publisher: Publisher
     genres: [Genre]
     publicationYear: Int
     authors: [Author]
   }
 
-  type Author{
+  type Author {
     id: ID!
-    firstName:String
+    firstName: String
     lastName: String
     country: String
     booksWritten: [Book]
   }
 
-  type Query{
-
+  type Query {
     """
-    Get all the authors 
+    Get all the authors
     """
     getAllAuthors: [Author]
     hello: String
     """
     Get all the books
     """
-    getAllBooks(limitBooks: Int, title: String, author:String, publisher:String, yearPublished: Int ): [Book]
+    getAllBooks(
+      limitBooks: Int
+      title: String
+      author: String
+      publisher: String
+      yearPublished: Int
+    ): [Book]
 
     """
     Get all the publishers
@@ -54,54 +60,62 @@ const typeDefs = gql `
     """
     Return an author by its ID
     """
-    getAuthorId(id: ID!):Author!
+    getAuthorId(id: ID!): Author!
 
     """
-    Return a book by its ID    
+    Return a book by its ID
     """
-    getBookId(id:ID!): Book!
+    getBookId(id: ID!): Book!
 
     """
     Return a publisher by its ID
     """
-    getPublisherId(id:ID!):Publisher!
+    getPublisherId(id: ID!): Publisher!
 
-    getFromIdToObject(id:ID!):Book
-    books(page:String): [Book]
+    getFromIdToObject(id: ID!): Book
+    books(page: String): [Book]
   }
-  input BookInput{
+  input BookInput {
     title: String
     ISBN: String
     synopsis: String
-    publisher:InputPublisher
+    publisher: InputPublisher
     genres: [InputGenre]
     publicationYear: Int
     authors: [InputAuthor]
   }
 
-  input InputPublisher{
-    name:String
+  input InputPublisher {
+    name: String
     foundationYear: Int
   }
-  input InputGenre{
+  input InputGenre {
     genres: [String]
   }
-  input InputAuthor{
-    firstName:String
+  input InputAuthor {
+    firstName: String
     lastName: String
     country: String
   }
-  type Mutation{
-    createBook(book: BookInput!): Book!
-    updateBook(id: ID!, book:BookInput!):Book!
-    deleteBook(id: ID!):String!
-    createUser(email:String!, password:String!): String!
+
+  input RegisterInput {
+    username: String
+    email: String
+    password: String
   }
 
-  
+  input LoginInput {
+    email: String
+    password: String
+  }
 
-
-
+  type Mutation {
+    createBook(book: BookInput!): Book!
+    updateBook(id: ID!, book: BookInput!): Book!
+    deleteBook(id: ID!): String!
+    createUser(registerInput: RegisterInput!): User!
+    loginUser(loginInput: LoginInput!): User!
+  }
 `;
 
-module.exports = {typeDefs};
+module.exports = { typeDefs };

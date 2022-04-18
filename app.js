@@ -9,15 +9,30 @@ const find = require('lodash/find');
 const expiresIn = '3h' // time to live
 const secret = 'samplejwtauthgraphql' // secret key
 const tokenPrefix = 'JWT' // Prefix for HTTP header
-
+const createToken = require("./resolvers");
+const veriFyToken = require("./resolvers");
+const jsonParser = require("body-parser");
 const app = express();
 connectDB();
 
 module.exports = app;
 
+app.use('/login', jsonParser, (req, res) => {
+  if (req.method === 'POST') {
+      const token = createToken(req.body.email, req.body.password)
+      if (token) { //send successful token
+          res.status(200).json({ token })
+      } else {
+          res.status(403).json({ //no token - invalid credentials
+              message: 'Login failed! Invalid credentials!'
+          })
+      }
+  }
+});
+
 
 app.get('/', (req,res)=>{
-  res.send('Welcome to my API');
+  res.send('Welcome. Go to /graphql');
 }); 
 
 async function start(){
