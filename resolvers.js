@@ -53,9 +53,13 @@ const resolvers = {
       const authors = await Author.find();
       return authors;
     },
-    getAllBooks: async (args) => {
-      const books = await Book.find();
-      return books;
+    getAllBooks: async (_,args) => {
+      if(args.order){
+        return await Book.find().sort({"title":args.order,"publicationYear":args.order})
+      }else{
+        const books = await Book.find();
+        return books;        
+      }
     },
     getAllPublishers: async (root, args) => {
       console.log(root);
@@ -81,7 +85,10 @@ const resolvers = {
       console.log(root.Publisher);
       return root;
     },
-    books: (parent, args, context, info) => {},
+    booksOrdered: async (_,args) => {
+      const books = await Book.find().sort({"title":args.order,"publicationYear":args.order});
+      return books;
+    },
   },
   Mutation: {
     createBook: async (root, args) => {
@@ -128,7 +135,6 @@ const resolvers = {
     },
     loginUser: async (_, { loginInput: { email, password } }) => {
       const user = await User.findOne({email});
-      console.log(user);
       if (user && (await bcrypt.compare(password, user.password))) {
         const token = jwt.sign({ user_id: user._id, email }, "UNSAFE_STRING", {
           expiresIn: "2h",

@@ -42,15 +42,9 @@ const typeDefs = gql`
     getAllAuthors: [Author]
     hello: String
     """
-    Get all the books
+    Get all the books, pass order argument to order them
     """
-    getAllBooks(
-      limitBooks: Int
-      title: String
-      author: String
-      publisher: String
-      yearPublished: Int
-    ): [Book]
+    getAllBooks(order: Int ): [Book]
 
     """
     Get all the publishers
@@ -73,7 +67,10 @@ const typeDefs = gql`
     getPublisherId(id: ID!): Publisher!
 
     getFromIdToObject(id: ID!): Book
-    books(page: String): [Book]
+      """
+      Return the books in a specified order, -1 to descending, by default its ascending
+      """
+    booksOrdered(order: Int!): [Book]
   }
   input BookInput {
     title: String
