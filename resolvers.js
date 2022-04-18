@@ -101,9 +101,8 @@ const resolvers = {
     },
     createUser: async (root, args) => {
       const { email, password } = args;
-      console.log(email);
       var out;
-      if ((await User.find({ email }).count) >= 1) {
+      if ((await User.find({ email }).count()) >= 1) {
         out = `Sorry user with that email already created`;
       } else {
         const user = new User({
@@ -111,8 +110,8 @@ const resolvers = {
           password,
         });
         await user.save();
+        out = `User with email ${email} created succesfully, please login now`;
       }
-      out = `User with email ${email} created succesfully, please login now`;
       return out;
     },
   },
@@ -123,16 +122,13 @@ const resolvers = {
  * @param {string} email
  * @param {string} password
  */
-/**const createToken = (email, password) => {
+const createToken = (email, password) => {
   if (!email || !password) {
     // no credentials = fail
     return false;
   }
-
-  const user = User.find({email},{});
-
+  const user = User.find({ email }, {});
   if (!user) {
-    // return false if not found
     return false;
   }
   const payload = {
@@ -143,7 +139,33 @@ const resolvers = {
   });
   return token;
   console.log(token);
-};*/
+};
+
+const verifyToken = async (token) => {
+  const [prefix, payload] = token.split(" ");
+  let user = null;
+  if (!payload) {
+    //no token in the header
+    throw new Error("No token provided");
+  }
+  if (prefix !== tokenPrefix) {
+    //unexpected prefix or format
+    throw new Error("Invalid header format");
+  }
+  jwt.verify(payload, secret, (err, data) => {
+    if (err) {
+      //token is invalid
+      throw new Error("Invalid token!");
+    } else {
+      user =  User.find({ email: data.username});
+    }
+  });
+  if (!user) {
+    //user does not exist in DB
+    throw new Error("User doesn not exist");
+  }
+  return user;
+};
 
 async function linkNewBookToPublisher(bookId, publisherId) {
   return await Publisher.findByIdAndUpdate(
@@ -181,7 +203,6 @@ async function validatePublisherBook(args) {
     (await Publisher.find({ name }).count()) < 1 &&
     (await Author.find({ firstName }).count()) < 1
   ) {
-
     var publisherAux = await createPublisher({
       name,
       foundationYear,
@@ -225,7 +246,6 @@ async function validatePublisherBook(args) {
     linkNewBookToAuthor(bookWithOldPublisher._id, oldAuthor._id);
     linkAuthorToBook(bookWithOldPublisher._id, oldAuthor._id);
     out = bookWithOldPublisher;
-
   } else {
     //Creo sólo el libro
     const bookNoExist = new Book({
@@ -234,13 +254,13 @@ async function validatePublisherBook(args) {
       synopsis,
       genres,
       publicationYear,
-      publisher: publisherInfo[0]._id
+      publisher: publisherInfo[0]._id,
     });
     bookNoExist.save();
-    const author = await Author.find({firstName});
+    const author = await Author.find({ firstName });
     linkNewBookToPublisher(bookNoExist._id, publisherInfo[0]._id);
     linkNewBookToAuthor(bookNoExist._id, args.book.authors[0]._id);
-    linkAuthorToBook(bookNoExist._id,author[0]._id);    
+    linkAuthorToBook(bookNoExist._id, author[0]._id);
 
     return bookNoExist;
   }
