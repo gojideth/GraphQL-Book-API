@@ -1,6 +1,5 @@
 # GraphQL-Express
-Deploy of Apollo Server using Express as middleware and MongoDB. 
-Simple GraphQL Blog API using Nodejs and Mongodb
+Deploy of an library API using Apollo Server with Express as middleware and MongoDB.
 
 ### Requirements
 
